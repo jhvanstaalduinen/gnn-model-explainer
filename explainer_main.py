@@ -22,7 +22,8 @@ import utils.io_utils as io_utils
 import utils.parser_utils as parser_utils
 from explainer import explain
 
-
+# Memory mgmt
+import resource
 
 def arg_parse():
     parser = argparse.ArgumentParser(description="GNN Explainer arguments.")
@@ -173,6 +174,16 @@ def arg_parse():
 
 
 def main():
+    
+    # Memory management
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    print('Previous (soft,hard) vmem limit (B):',soft, hard)
+    vmem_lim = 12 * 1e9 # 1e9 bytes = 1 GB
+    resource.setrlimit(resource.RLIMIT_AS, (vmem_lim, vmem_lim))
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    print('New (soft,hard) vmem limit (GB):',soft/1e9, hard/1e9)
+    
+    
     # Load a configuration
     prog_args = arg_parse()
 

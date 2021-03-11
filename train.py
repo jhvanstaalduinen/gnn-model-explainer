@@ -41,6 +41,8 @@ import utils.graph_utils as graph_utils
 
 import models
 
+# Memory mgmt
+import resource
 
 #############################
 #
@@ -1166,6 +1168,16 @@ def arg_parse():
 
 
 def main():
+    
+    # Memory management
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    print('Previous (soft,hard) vmem limit (B):',soft, hard)
+    vmem_lim = 12 * 1e9 # 1e9 bytes = 1 GB
+    resource.setrlimit(resource.RLIMIT_AS, (vmem_lim, vmem_lim))
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    print('New (soft,hard) vmem limit (GB):',soft/1e9, hard/1e9)
+
+    # Process args
     prog_args = configs.arg_parse()
 
     path = os.path.join(prog_args.logdir, io_utils.gen_prefix(prog_args))
