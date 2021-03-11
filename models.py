@@ -263,7 +263,9 @@ class GcnEncoderGraph(nn.Module):
         self.embedding_tensor = x_tensor
 
         # adj_att_tensor: [batch_size x num_nodes x num_nodes x num_gc_layers]
-        adj_att_tensor = torch.stack(adj_att_all, dim=3)
+        #adj_att_tensor = torch.stack(adj_att_all, dim=3)
+        adj_att_tensor = torch.Tensor([1]) # cannot store the entire stack of adj, see where it breaks
+        
         return x_tensor, adj_att_tensor
 
     def forward(self, x, adj, batch_num_nodes=None, **kwargs):

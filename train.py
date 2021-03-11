@@ -211,7 +211,9 @@ def train(
                 data["assign_feats"].float(), requires_grad=False
             ).cuda()
 
-            ypred, att_adj = model(h0, adj, batch_num_nodes, assign_x=assign_input)
+            #ypred, att_adj = model(h0, adj, batch_num_nodes, assign_x=assign_input)
+            ypred, _ = model(h0, adj, batch_num_nodes, assign_x=assign_input) # att_adj is not used in this script (?)
+            
             if batch_idx < 5:
                 predictions += ypred.cpu().detach().numpy().tolist()
 
@@ -530,7 +532,9 @@ def evaluate(dataset, model, args, name="Validation", max_num_examples=None):
             data["assign_feats"].float(), requires_grad=False
         ).cuda()
 
-        ypred, att_adj = model(h0, adj, batch_num_nodes, assign_x=assign_input)
+        #ypred, att_adj = model(h0, adj, batch_num_nodes, assign_x=assign_input)
+        ypred, _ = model(h0, adj, batch_num_nodes, assign_x=assign_input) # att_adj is not used in this script (?)
+        
         _, indices = torch.max(ypred, 1)
         preds.append(indices.cpu().data.numpy())
 
