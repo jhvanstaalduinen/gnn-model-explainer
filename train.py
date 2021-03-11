@@ -13,7 +13,10 @@ import random
 import shutil
 import time
 
+
 import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
