@@ -1172,21 +1172,21 @@ def arg_parse():
 
 def main():
     
-   # Memory management
-   soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-   print('Previous (soft,hard) vmem limit (B):',soft, hard)
-   vmem_lim = int(200 * 1e9) # 1e9 bytes = 1 GB
+    # Memory management
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    print('Previous (soft,hard) vmem limit (B):',soft, hard)
+    vmem_lim = int(200 * 1e9) # 1e9 bytes = 1 GB
 
-   resource.setrlimit(resource.RLIMIT_AS, (vmem_lim, vmem_lim))
-   soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-   print('New (soft,hard) vmem limit (GB):',soft/1e9, hard/1e9)
+    resource.setrlimit(resource.RLIMIT_AS, (vmem_lim, vmem_lim))
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    print('New (soft,hard) vmem limit (GB):',soft/1e9, hard/1e9)
 
-   # Process args
-   prog_args = configs.arg_parse()
+    # Process args
+    prog_args = configs.arg_parse()
 
-   path = os.path.join(prog_args.logdir, io_utils.gen_prefix(prog_args))
-   #writer = SummaryWriter(path)
-   writer = None
+    path = os.path.join(prog_args.logdir, io_utils.gen_prefix(prog_args))
+    #writer = SummaryWriter(path)
+    writer = None
 
 
     # Process args
