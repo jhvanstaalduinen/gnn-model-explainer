@@ -1,0 +1,1 @@
+Note: node labels are empty (all set to 0), since the goal is to train on features (and see whether that is possible using this code).

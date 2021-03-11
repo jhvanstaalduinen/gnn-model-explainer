@@ -45,6 +45,7 @@ import models
 #############################
 def prepare_data(graphs, args, test_graphs=None, max_nodes=0):
 
+    print('In prepare_data(), max_nodes =',max_nodes)
     random.shuffle(graphs)
     if test_graphs is None:
         train_idx = int(len(graphs) * args.train_ratio)
@@ -74,13 +75,19 @@ def prepare_data(graphs, args, test_graphs=None, max_nodes=0):
         ", " "{0:.2f}".format(np.std([G.number_of_nodes() for G in graphs])),
     )
 
+    print('Num workers in prepare_data():',args.num_workers)
+    print('Batch size:',args.batch_size)
+    print('Begin building minibatch samplers...')
+    max_nodes = max([G.number_of_nodes() for G in graphs]) # FIXME: set this through params?
     # minibatch
+    print('\t building train_dataset (1/2)...')
     dataset_sampler = graph_utils.GraphSampler(
         train_graphs,
         normalize=False,
         max_num_nodes=max_nodes,
         features=args.feature_type,
     )
+    print('\t building train_dataset (2/2)...')
     train_dataset_loader = torch.utils.data.DataLoader(
         dataset_sampler,
         batch_size=args.batch_size,
@@ -88,12 +95,14 @@ def prepare_data(graphs, args, test_graphs=None, max_nodes=0):
         num_workers=args.num_workers,
     )
 
+    print('\t building val_dataset (1/2)...')
     dataset_sampler = graph_utils.GraphSampler(
         val_graphs, 
         normalize=False, 
         max_num_nodes=max_nodes, 
         features=args.feature_type
     )
+    print('\t building val_dataset (2/2)...')
     val_dataset_loader = torch.utils.data.DataLoader(
         dataset_sampler,
         batch_size=args.batch_size,
@@ -101,19 +110,21 @@ def prepare_data(graphs, args, test_graphs=None, max_nodes=0):
         num_workers=args.num_workers,
     )
 
+    print('\t building test_dataset (1/2)...')
     dataset_sampler = graph_utils.GraphSampler(
         test_graphs,
         normalize=False,
         max_num_nodes=max_nodes,
         features=args.feature_type,
     )
+    print('\t building val_dataset (2/2)...')
     test_dataset_loader = torch.utils.data.DataLoader(
         dataset_sampler,
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
     )
-
+    print('Done building minibatch samplers.')
     return (
         train_dataset_loader,
         val_dataset_loader,
@@ -161,12 +172,17 @@ def train(
         model.train()
         predictions = []
         print("Epoch: ", epoch)
+        print('Starting batch 0 with batch_size',args.batch_size)
         for batch_idx, data in enumerate(dataset):
+            print('Batch',batch_idx,'A')
             model.zero_grad()
             if batch_idx == 0:
                 prev_adjs = data["adj"]
+                print('Batch',batch_idx,'A0')
                 prev_feats = data["feats"]
+                print('Batch',batch_idx,'A1')
                 prev_labels = data["label"]
+                print('Batch',batch_idx,'A2')
                 all_adjs = prev_adjs
                 all_feats = prev_feats
                 all_labels = prev_labels
@@ -177,6 +193,7 @@ def train(
                 all_adjs = torch.cat((all_adjs, prev_adjs), dim=0)
                 all_feats = torch.cat((all_feats, prev_feats), dim=0)
                 all_labels = torch.cat((all_labels, prev_labels), dim=0)
+            print('Batch',batch_idx,'B')
             adj = Variable(data["adj"].float(), requires_grad=False).cuda()
             h0 = Variable(data["feats"].float(), requires_grad=False).cuda()
             label = Variable(data["label"].long()).cuda()
@@ -870,8 +887,11 @@ def benchmark_task(args, writer=None, feat="node-label"):
     graphs = io_utils.read_graphfile(
         args.datadir, args.bmname, max_nodes=args.max_nodes
     )
+    print('In benchmark_task, num graphs:',len(graphs))
     print(max([G.graph["label"] for G in graphs]))
-
+    print('Features (benchmark_task())',feat)
+    print('Feat_dim in graphs[0].graph:',"feat_dim" in graphs[0].graph)
+    print(graphs[0].graph)
     if feat == "node-feat" and "feat_dim" in graphs[0].graph:
         print("Using node features")
         input_dim = graphs[0].graph["feat_dim"]
@@ -892,6 +912,8 @@ def benchmark_task(args, writer=None, feat="node-label"):
     train_dataset, val_dataset, test_dataset, max_num_nodes, input_dim, assign_input_dim = prepare_data(
         graphs, args, max_nodes=args.max_nodes
     )
+    print('Input dim:',input_dim)
+    print('assign_input_dim:',assign_input_dim)
     if args.method == "soft-assign":
         print("Method: soft-assign")
         model = models.SoftPoolingGcnEncoder(
@@ -1115,14 +1137,14 @@ def arg_parse():
         dataset="syn1",
         opt="adam",  # opt_parser
         opt_scheduler="none",
-        max_nodes=100,
+        max_nodes=5000, # was: 100
         cuda="1",
         feature_type="default",
         lr=0.001,
         clip=2.0,
         batch_size=20,
         num_epochs=1000,
-        train_ratio=0.8,
+        train_ratio=0.8, 
         test_ratio=0.1,
         num_workers=1,
         input_dim=10,
@@ -1153,7 +1175,10 @@ def main():
 
     # use --bmname=[dataset_name] for Reddit-Binary, Mutagenicity
     if prog_args.bmname is not None:
-        benchmark_task(prog_args, writer=writer)
+        if ('brc_' in prog_args.bmname):
+            benchmark_task(prog_args, writer=writer, feat="node-feat")
+        else:
+            benchmark_task(prog_args, writer=writer)
     elif prog_args.pkl_fname is not None:
         pkl_task(prog_args)
     elif prog_args.dataset is not None:
