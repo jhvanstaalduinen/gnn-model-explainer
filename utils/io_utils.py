@@ -446,8 +446,16 @@ def read_graphfile(datadir, dataname, max_nodes=None, edge_labels=False):
     filename_graph_indic = prefix + "_graph_indicator.txt"
     # index of graphs that a given node belongs to
     graph_indic = {}
+    
+    import time
+    time.sleep(10)
+    print('Reading graph files...')
+    
     with open(filename_graph_indic) as f:
         i = 1
+        
+        print('\t opening graph file',i)
+        
         for line in f:
             line = line.strip("\n")
             graph_indic[i] = int(line)

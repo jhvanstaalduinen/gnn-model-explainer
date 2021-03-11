@@ -1,4 +1,4 @@
-"""graph_utils.py
+q"""graph_utils.py
 
    Utility for sampling graphs from a dataset.
 """
@@ -137,7 +137,6 @@ class GraphSampler(torch.utils.data.Dataset):
         #adj = self.adj_all[idx]
         adj = self.adj_all[idx].todense() # JHvS. Causes timeout in pytorch's _try_get_data() when using multiple workers?
         print('Max nodes in __getitem__:',self.max_num_nodes)
-        print('Batch size:',self.batch_size)
         num_nodes = adj.shape[0]
         adj_padded = np.zeros((self.max_num_nodes, self.max_num_nodes))
         adj_padded[:num_nodes, :num_nodes] = adj
