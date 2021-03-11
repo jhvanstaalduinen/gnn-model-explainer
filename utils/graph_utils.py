@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import torch.utils.data
 
+from scipy.sparse import bsr_matrix # JHvS
 
 class GraphSampler(torch.utils.data.Dataset):
     """ Sample graphs and nodes in graph
@@ -19,6 +20,7 @@ class GraphSampler(torch.utils.data.Dataset):
         normalize=True,
         assign_feat="default",
         max_num_nodes=0,
+        
     ):
         self.adj_all = []
         self.len_all = []
@@ -36,13 +38,15 @@ class GraphSampler(torch.utils.data.Dataset):
         self.feat_dim = G_list[0].nodes[existing_node]["feat"].shape[0]
 
         for G in G_list:
-            adj = np.array(nx.to_numpy_matrix(G))
+            adj = np.array(nx.to_numpy_matrix(G))  # <-- problematic for large graphs (JHvS)
             if normalize:
                 sqrt_deg = np.diag(
                     1.0 / np.sqrt(np.sum(adj, axis=0, dtype=float).squeeze())
                 )
                 adj = np.matmul(np.matmul(sqrt_deg, adj), sqrt_deg)
-            self.adj_all.append(adj)
+            #self.adj_all.append(adj)
+            self.adj_all.append(bsr_matrix(adj)) # JHvS
+            
             self.len_all.append(G.number_of_nodes())
             self.label_all.append(G.graph["label"])
             # feat matrix: max_num_nodes x feat_dim
@@ -130,11 +134,15 @@ class GraphSampler(torch.utils.data.Dataset):
         return len(self.adj_all)
 
     def __getitem__(self, idx):
-        adj = self.adj_all[idx]
+        #adj = self.adj_all[idx]
+        adj = self.adj_all[idx].todense() # JHvS. Causes timeout in pytorch's _try_get_data() when using multiple workers?
+        print('Max nodes in __getitem__:',self.max_num_nodes)
+        print('Batch size:',self.batch_size)
         num_nodes = adj.shape[0]
         adj_padded = np.zeros((self.max_num_nodes, self.max_num_nodes))
         adj_padded[:num_nodes, :num_nodes] = adj
-
+        #adj_padded = torch.sparse_coo_tensor(list(np.nonzero(adj_padded)),adj_padded[np.nonzero(adj_padded)].reshape(-1,1)) # JHvS
+        
         # use all nodes for aggregation (baseline)
         return {
             "adj": adj_padded,

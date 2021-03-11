@@ -20,7 +20,7 @@ import torch
 import networkx as nx
 import tensorboardX
 
-import cv2
+#import cv2 # was not installed, trying to run without
 
 import torch
 import torch.nn as nn
@@ -163,7 +163,8 @@ def save(mask_cg):
     mask = (mask - np.min(mask)) / np.max(mask)
     mask = 1 - mask
 
-    cv2.imwrite("mask.png", np.uint8(255 * mask))
+    #cv2.imwrite("mask.png", np.uint8(255 * mask))
+    assert False, 'cv2 was not installed. To use this function, first rewrite this function to replace cv2.imwrite(...)'
 
 def log_matrix(writer, mat, name, epoch, fig_size=(8, 6), dpi=200):
     """Save an image of a matrix to disk.
@@ -327,6 +328,17 @@ def log_graph(
     min_color = min([d for (u, v, d) in Gc.edges(data="weight", default=1)])
     # color range: gray to black
     edge_vmin = 2 * min_color - edge_vmax
+    print('Edge colors:',len(edge_colors),type(edge_colors),type(edge_colors[0]), edge_colors)
+    print(type(edge_colors[0])==torch.Tensor)
+    
+    # For some reason, the last .log_graph() call has single-item tensors instead of floats for edge_colors. Is this a problem?
+    if (type(edge_colors[0])==torch.Tensor):
+      print('Correcting type')
+      print([type(edge_colors[i]) for i in range(len(edge_colors))])
+      edge_colors = [e.item() for e in edge_colors] # it has only 1.0, resulting in a white and invisible edge?
+      print('Corrected type:')
+      print('Edge colors:',len(edge_colors),type(edge_colors),type(edge_colors[0]), edge_colors)
+      print(type(edge_colors[0])==torch.Tensor)
     nx.draw(
         Gc,
         pos=pos_layout,
@@ -519,14 +531,30 @@ def read_graphfile(datadir, dataname, max_nodes=None, edge_labels=False):
     for k in index_graph.keys():
         index_graph[k] = [u - 1 for u in set(index_graph[k])]
 
+    print('Num unique keys in graph_indic:',len(np.unique(graph_indic.keys())[0]))
+    print('Num unique vals in graph_indic:',len(np.unique(list(graph_indic.values()))))
+    print('graph_indic len:',len(graph_indic))
+    print('Num edges:',num_edges)
+
+    
+
+    print('max number of nodes:',max_nodes)
     graphs = []
     for i in range(1, 1 + len(adj_list)):
         # indexed from 1 here
         G = nx.from_edgelist(adj_list[i])
 
+        max_nodes = 10000 # FIXME: move this to relevant line instead of hardcoding
+        
         if max_nodes is not None and G.number_of_nodes() > max_nodes:
             continue
 
+        if (len(adj_list[i])<1):
+            print('Skipped graph',i,'because it has no edges')
+            continue
+        else:
+            print('Graph',i,'; no. of edge:',len(adj_list[i]))
+        
         # add features and labels
         G.graph["label"] = graph_labels[i - 1]
 
@@ -559,6 +587,9 @@ def read_graphfile(datadir, dataname, max_nodes=None, edge_labels=False):
 
         # indexed from 0
         graphs.append(nx.relabel_nodes(G, mapping))
+        
+        # Print graph info
+        #print(i,len(adj_list),len(adj_list[i]),G.edges())
     return graphs
 
 
